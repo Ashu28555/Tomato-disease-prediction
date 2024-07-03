@@ -1,4 +1,32 @@
 # tomato-disease-prediction
+## AIM: 
+The aim of this project is to develop and evaluate convolutional neural network (CNN) models for image classification of tomato leaf diseases using TensorFlow and Keras. The objective is to build models capable of accurately classifying images and providing corresponding precautions and treatments based on the predicted disease.
+
+## OBJECTIVE :
+1. Implement CNN architectures using TensorFlow and Keras.
+2. Train the models on a dataset of images.
+3. Evaluate the models' performance on both training and validation datasets.
+4. Optimize the models' architecture and hyperparameters to achieve higher accuracy.
+5. Save the trained models for future use or deployment.
+
+## DATASET :
+The collection of datasets from Kaggle comprises 
+10,000 images of tomato leaves that are available 
+to the public and represent 9 illnesses and 1 healthy condition. 
+Tomato Diseases are :
+1. Bacterial spot
+2. Early blight
+3. Late blight
+4. Leaf Mold
+5. Septoria leaf spot
+6. Spider mites Two spotted spider mite
+7. Target Spot
+8. Yellow Leaf Curl Virus
+9. Mosaic virus
+10. Healthy
+
+### Importing important libraries
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import models, layers
@@ -7,10 +35,14 @@ from keras.models import Sequential
 from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense
 import matplotlib.pyplot as plt
 
+### Defin important measures
+
 BATCH_SIZE = 32
 IMAGE_SIZE = 224
 CHANNELS = 3
 EPOCHS = 50
+
+### Load the dataset
 
 data = tf.keras.preprocessing.image_dataset_from_directory(
     'train',
@@ -19,10 +51,29 @@ data = tf.keras.preprocessing.image_dataset_from_directory(
     batch_size =BATCH_SIZE
 )
 
+### Pre- Processing of data
+
 class_names = data.class_names
 class_names
 
-plt.figure(figsize = (15,15))
+label_counts = {}
+
+# Iterate through the dataset to count occurrences of each label
+for images_batch, labels_batch in data:
+    for label in labels_batch.numpy():
+        label_name = class_names[label]  # Get the label name from the class_names list
+        if label_name in label_counts:
+            label_counts[label_name] += 1
+        else:
+            label_counts[label_name] = 1
+
+# Print the label counts
+print("Label Counts:")
+for label, count in label_counts.items():
+    print(f"{label}: {count}")
+
+
+plt.figure(figsize = (12,12))
 for image_batch, labels_batch in data.take(1):
     print(image_batch.shape)
     print(labels_batch.numpy())
@@ -31,6 +82,8 @@ for image_batch, labels_batch in data.take(1):
         plt.imshow(image_batch[i].numpy().astype('uint8'))
         plt.title(class_names[labels_batch[i]])
         plt.axis('off')
+
+### Split the datset into Training, Testing and Validation dataset
 
 def get_dataset_partitions_tf(ds, train_split = 0.8, val_split = 0.1, test_split = 0.1, shuffle = True, shuffle_size = 10000):
     assert (train_split+test_split+val_split) == 1
@@ -70,7 +123,7 @@ data_augmentation = tf.keras.Sequential([
 input_shape = (IMAGE_SIZE, IMAGE_SIZE, CHANNELS)
 n_classes = 10
 
-
+### Convolution Neural Network Layer
 
 model = Sequential([
     Input(shape=input_shape),
@@ -94,28 +147,6 @@ model = Sequential([
 ])
 
 
-model = Sequential([
-    Input(shape=input_shape),
-    resize_and_rescale,
-    data_augmentation,
-    Conv2D(64, kernel_size=(3, 3), activation='relu'),  # Increased number of filters
-    MaxPooling2D((2, 2)),
-    Conv2D(128, kernel_size=(3, 3), activation='relu'),  # Added another convolutional layer
-    MaxPooling2D((2, 2)),
-    Conv2D(256, kernel_size=(3, 3), activation='relu'),  # Added another convolutional layer with even more filters
-    MaxPooling2D((2, 2)),
-    Conv2D(256, kernel_size=(3, 3), activation='relu'),  # Added another convolutional layer with the same number of filters
-    MaxPooling2D((2, 2)),
-    Conv2D(512, kernel_size=(3, 3), activation='relu'),  # Added another convolutional layer with even more filters
-    MaxPooling2D((2, 2)),
-    Conv2D(512, kernel_size=(3, 3), activation='relu'),  # Added another convolutional layer with the same number of filters
-    MaxPooling2D((2, 2)),
-    Flatten(),
-    Dense(256, activation='relu'),  # Increased the number of units in the dense layer
-    Dense(n_classes, activation='softmax')
-])
-
-
 model.summary()
 
 model.compile(
@@ -123,6 +154,8 @@ model.compile(
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits= False),
     metrics = ['accuracy']
 )
+
+### Training the dataset using CNN 
 
 history = model.fit(
     train_ds,
@@ -132,7 +165,19 @@ history = model.fit(
     epochs = EPOCHS
 )
 
+After training the datset by using CNN we got the :
+1. Training Accuracy = 95.82 %
+2. Validation Accuracy = 94.46 %
+3. Training Loss = 0.1263
+4. Validation Loss = 0.1559
+
+### Testing the dataset
+
 scores = model.evaluate(test_ds)
+
+After evalustion of testing dataset we got :
+1. Accuracy = 96.47%
+2. Loss = 0.1172 
 
 scores
 
@@ -147,6 +192,9 @@ val_acc = history.history['val_accuracy']
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 
+### 1. Visualization of Training and Validation Accuracy with respect to epochs 
+### 2. Visualization of Training and Validation Loss with respect to epochs 
+
 plt.figure(figsize=(10,10))
 plt.subplot(1,2,1)
 plt.plot(range(EPOCHS), acc, label = 'Training Accuracy')
@@ -160,6 +208,8 @@ plt.plot(range(EPOCHS), val_loss, label = 'Validation Loss')
 plt.legend(loc = 'upper right')
 plt.title('Training and Validation Loss')           
             
+
+### Testing a image :
 
 for images_batch, labels_batch in test_ds.take(1):
     first_image = images_batch[0].numpy().astype('uint8')
@@ -195,37 +245,16 @@ for images, labels in test_ds.take(1):
         plt.title(f'Actual : {actual_class}, \n Predicted : {predicted_class}. \n Confidence: {confidence}%')
         plt.axis('off')
 
-import matplotlib.pyplot as plt
-
-# Assuming EPOCHS and loss are defined elsewhere in your code
-# EPOCHS is the number of epochs your model was trained for
-# loss is a list containing the training loss values for each epoch
-# val_loss is a list containing the validation loss values for each epoch
-
-plt.subplot(1, 2, 2)  # Create a subplot with 1 row, 2 columns, and select the second plot
-plt.plot(range(EPOCHS), loss, label='Training Loss')  # Plot the training loss
-plt.plot(range(EPOCHS), val_loss, label='Validation Loss')  # Plot the validation loss
-plt.legend(loc='upper right')  # Display legend at upper right corner
-plt.title('Training and Validation Loss')  # Set the title of the plot
-
-plt.show()  # Show the plot
-
+### Saving the Model
 
 model_version = 1
 model.save(f'../models/model_v{model_version}.keras')
 
 
 
-loaded_model = tf.keras.models.load_model('../models/model_v1.keras')
+## Load the Model
 
-for images_batch, labels_batch in test_ds.take(32):
-    first_image = images_batch[0].numpy().astype('uint8')
-    print('First Image to predict')
-    plt.imshow(first_image)
-    print('Actual Label :',class_names[labels_batch[0].numpy()])
-    
-    batch_prediction = loaded_model.predict(images_batch)
-    print('Predicted Label',class_names[np.argmax(batch_prediction[0])])
+loaded_model = tf.keras.models.load_model('../models/model_v2.keras')
 
 for images_batch, labels_batch in test_ds.take(1):
     first_image = images_batch[0].numpy().astype('uint8')
@@ -237,7 +266,7 @@ for images_batch, labels_batch in test_ds.take(1):
     predicted_label = class_names[np.argmax(batch_prediction[0])]
     plt.text(10, 30, f'Predicted Label: {predicted_label}', color='red', fontsize=12, weight='bold')
 
-class_names
+### Precautions and treatments of tomato disease with respect to diseases.
 
 disease_info = {
     'Tomato___Bacterial_spot': {
@@ -353,8 +382,6 @@ disease_info = {
     }
 }
 
-import matplotlib.pyplot as plt
-
 for images_batch, labels_batch in test_ds.take(1):
     first_image = images_batch[0].numpy().astype('uint8')
     print('First Image to predict')
@@ -362,7 +389,7 @@ for images_batch, labels_batch in test_ds.take(1):
     print('Actual Label:', class_names[labels_batch[0].numpy()])
     
     batch_prediction = loaded_model.predict(images_batch)
-    predicted_label_index = np.argmax(batch_prediction[6])
+    predicted_label_index = np.argmax(batch_prediction[0])
     predicted_label = class_names[predicted_label_index]
     plt.text(10, 30, f'Predicted Label: {predicted_label}', color='red', fontsize=12, weight='bold')
     
@@ -378,4 +405,30 @@ for images_batch, labels_batch in test_ds.take(1):
     else:
         print('\nNo precautions or treatment information available for this disease.')
 
+
+### Conclusion:
+In this experiment, we successfully developed and evaluated convolutional neural network (CNN) models for image classification using TensorFlow and Keras. The models were trained on a dataset comprising 10,000 images of tomato leaves representing 10 different classes, including 9 illnesses and 1 healthy condition. The aim was to build models capable of accurately classifying these images into their respective categories.
+
+We implemented CNN architectures consisting of convolutional layers followed by max-pooling layers, flattening, and dense layers for classification. Data preprocessing techniques such as resizing, rescaling, and data augmentation were applied to enhance model performance and generalization.
+
+After training the models for 50 epochs, we achieved promising results:
+
+1. Training Accuracy: 95.82%
+2. Validation Accuracy: 94.46%
+3. Training Loss: 0.1263
+4. Validation Loss: 0.1559
+
+Subsequently, the models were evaluated on a separate testing dataset, yielding an accuracy of 96.47% and a loss of 0.1172.
+
+Visualization of training and validation accuracy, as well as training and validation loss, provided insights into the models' learning progress throughout the training process.
+
+Lastly, we tested the models on sample images from the testing dataset, demonstrating their capability to predict tomato leaf diseases with high accuracy and confidence.
+
+The models were enhanced to provide information on precautions and treatments specific to each predicted disease, offering valuable insights for disease management in tomato plants.
+
+### Learning Outcomes:
+1. Image Classification with CNNs: Gain insights into designing CNN architectures for image classification tasks, including preprocessing techniques and model evaluation.
+2. Information Integration: Learn to integrate additional information (precautions and treatments) into the prediction pipeline for practical applications.
+3. Model Optimization: Explore techniques for optimizing model architecture and hyperparameters to improve classification accuracy and performance.
+4. Practical Application: Understand the practical implications of image classification models in agriculture, particularly in plant disease management and crop yield optimization..
 
